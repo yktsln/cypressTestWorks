@@ -23,7 +23,7 @@ describe('template spec', () => {
     
   });
 
-  it.only('cart',()=>{
+  it('cart',()=>{
     login.navigate();
     login.username();
     login.password();
@@ -32,7 +32,20 @@ describe('template spec', () => {
     login.navigateCart();
     login.CartItems();
     login.cartRemoveElements();
+    
   });
+
+  it('cart2',()=>{
+    login.navigate();
+    login.username();
+    login.password();
+    login.loginBtn();
+    login.headerTest();
+    login.navigateCart();
+    login.CartItems();
+    
+  })
+  
 
 
   
