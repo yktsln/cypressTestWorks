@@ -161,27 +161,35 @@ export class cypressTest{
 
   checkoutpage(){
     cy.get('.cart_footer .checkout_button').click();
-    cy.url('https://www.saucedemo.com/v1/checkout-step-one.html');
+    cy.url().should('eq','https://www.saucedemo.com/v1/checkout-step-one.html');
 
 
   }
 
   checkoutpageHeader(){
+    // Verify the visibility of elements in the header container
     cy.get('.header_container div[class]').should('be.visible');
     cy.get('#shopping_cart_container').should('be.visible');
+    // Check the shopping cart badge count
     cy.get('.fa-layers-counter.shopping_cart_badge').invoke('text').should('eq','6').should('exist');
+    // Verify the visibility of the subheader
     cy.get('.subheader').should('be.visible');
+    // Check the existence and visibility of the burger menu button
     cy.get('.bm-burger-button button').should('exist');
+    // Check the existence and invisibility of the burger menu wrap initially
     cy.get('.bm-menu-wrap').should('exist').should('not.be.visible');
+    // Open the burger menu and verify its visibility along with the links
     cy.get('.bm-burger-button button').click();
     cy.get('.bm-menu-wrap').should('exist').should('be.visible');
     cy.get('.bm-menu-wrap a').each(($link)=>{
       cy.wrap($link).should('be.visible');
       });
+      // Close the burger menu
     cy.get('.bm-cross-button button').click();
   }
 
-  setAndVerifyValues() {
+  setAndVerifyValues() {//Sets specific values to input fields in the checkout information section and verifies the values.
+    // Verify that all input fields exist and have an initial value of an empty string
     cy.get('.checkout_info input').each(($list)=>{
       cy.wrap($list).should('exist').should('value','');
     });
@@ -195,26 +203,136 @@ export class cypressTest{
      } else if ($index === 2) {
       expectedValue = '123123';
      }
-
+      // Set the value and verify
      cy.wrap($list).type(expectedValue);
      cy.wrap($list).should('have.value', expectedValue);
     });
   }
 
-  setInvalidValues(){
-    cy.get('.checkout_info input').each(($list)=>{
-      cy.wrap($list).should('exist').should('value','');
-    });
-    cy.get('.checkout_info input').each(($list, $index) => {
+  setInvalidValues(){// Scenarios for Checking Input Validation and Errors in Checkout Information
+    
+    cy.get('.checkout_info input').each(($list ,$index) => {//Check for empty first name
+      cy.wrap($list).clear();
+
       if($index === 0){
+        cy.wrap($list).should('exist').should('value','');
         cy.contains('Error: First Name is required').should('not.to.be.exist');
-        cy.get('.checkout_buttons input').click();
-        cy.contains('Error: First Name is required').should('to.be.exist');
+      }else if($index === 1){
+        cy.get($list).type('UserLastName')
+      }else if($index === 2){
+        cy.get($list).type('123123')
       }
-     
+      
+      cy.get('.checkout_buttons input').click();
+      cy.contains('Error: First Name is required').should('to.be.exist');  
     });
+
+
+
+    cy.get('.checkout_info input').each(($list ,$index) => {//Check for empty last name
+    cy.wrap($list).clear();
+      
+      if($index === 0){
+        cy.get($list).type('UserFirstName')
+      }else if($index === 1){
+        cy.wrap($list).should('exist').should('value','');
+        cy.contains('Error: Last Name is required').should('not.to.be.exist');
+      }else if($index === 2){
+        cy.get($list).type('123123')
+      }
+      
+          
+    });
+    cy.get('.checkout_buttons input').click();
+    cy.contains('Error: Last Name is required').should('to.be.exist');
+
+
+
+    cy.get('.checkout_info input').each(($list ,$index) => {//Check for empty Postal Code
+    cy.wrap($list).clear();
+      
+      if($index === 0){
+        cy.get($list).type('UserFirstName')
+      }else if($index === 1){
+        cy.get($list).type('UserLastName')
+      }else if($index === 2){
+        cy.wrap($list).should('exist').should('value','');
+        cy.contains('Error: Postal Code is required').should('not.to.be.exist');
+        
+      }
+      
+          
+    });
+    cy.get('.checkout_buttons input').click();
+    cy.contains('Error: Postal Code is required').should('to.be.exist');
+
+
+    cy.get('.checkout_info input').each(($list ,$index) => {//Check for all inputs empty 
+    cy.wrap($list).clear();
+
+      if($index === 0){
+      cy.wrap($list).should('exist').should('value','');
+      cy.contains('Error: First Name is required').should('not.to.be.exist');
+      }else if($index === 1){
+        cy.wrap($list).should('exist').should('value','');
+      }else if($index === 2){
+        cy.wrap($list).should('exist').should('value','');
+      }
+      
+      cy.get('.checkout_buttons input').click();
+      cy.contains('Error: First Name is required').should('to.be.exist');  
+
+
+    });
+
+
+
   }
 
-  
+  verifyCartItems(){//Verifies the items in the shopping cart against the expected items provided in the fixture.
+    cy.fixture('cart_items').then((expectedItems)=>{
+      cy.get('.cart_item').each(($item,index)=>{ 
+        const addedItem =expectedItems[index];
 
+        cy.get($item).find('.summary_quantity').should('have.text', addedItem.quantity.toString());
+        cy.get($item).find('.inventory_item_name').should('have.text',addedItem.name);
+        cy.get($item).find('.inventory_item_desc').should('have.text', addedItem.description);
+        cy.get($item).find('.inventory_item_price').should('have.text', `$${addedItem.price}`);
+      });
+    });
+
+  }
+
+  verifySummaryInfo(){//Verifies the summary information in the cart, including item total, tax, total, and footer links.
+    cy.get('.summary_info.summary_info div[class]:not(.cart_footer)').each(($list, index) => {
+    cy.wrap($list).should('be.visible');    
+      if (index === 5) {
+         cy.fixture('cart_items').then((prices) => {
+            const totalExpectedPrice = prices.reduce((total, item) => total + parseFloat(item.price), 0);
+            cy.get('.summary_info .summary_subtotal_label').should('have.text', `Item total: $${totalExpectedPrice.toFixed(2)}`);
+          });
+        }
+    });
+    cy.get('.summary_tax_label').should('exist')
+        .then(() => {
+            const itemTotal = 129.93;
+            const taxRate = 0.08008;
+            const calculatedTax = itemTotal * taxRate;
+            const formattedTax = calculatedTax.toFixed(2);
+            cy.get('.summary_tax_label').should('have.text', `Tax: $${formattedTax}`);
+          });
+     cy.get('.summary_total_label').should('be.visible')
+        .then(() => {
+            const summaryTotal = 129.94 + 10.40;
+            cy.get('.summary_total_label').should('have.text', `Total: $${summaryTotal}`);
+        });
+      
+      cy.get('.cart_footer a').should('be.visible').each(($list,index)=>{
+        if(index === 0){
+          cy.wrap($list).should('have.text','CANCEL')
+        }else if(index === 1){
+          cy.wrap($list).should('have.text','FINISH')
+        }
+      })
+  }
 }
